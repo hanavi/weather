@@ -172,7 +172,7 @@ def print_hourly(data=None):
         windgust = hour['windGust']
         precip_probablity = hour['precipProbability']
 
-        temperature = f'{temperature:0.1f}'.ljust(5)
+        temperature = f'{temperature:0.1f}'.rjust(5)
         summary = f'{summary}'.ljust(25)
         windspeed = f'{windspeed:0.1f}'.rjust(4)
         windgust = f'{windgust:0.1f}'.rjust(5)
