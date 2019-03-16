@@ -6,6 +6,18 @@ import json
 import datetime
 import re
 import configparser
+from colorama import Fore, Back, Style
+import click
+
+import logging
+import structlog
+from structlog.stdlib import LoggerFactory
+structlog.configure(logger_factory=LoggerFactory())
+
+log = structlog.get_logger()
+debug = log.debug
+info = log.info
+error = log.error
 
 
 def load_data():
@@ -17,45 +29,38 @@ def load_data():
     latitude = config['default']['latitude']
     longitude = config['default']['longitude']
     api_key = config['default']['api_key']
-
     url = f"https://api.darksky.net/forecast/{api_key}/{latitude},{longitude}"
 
-    req = requests.get(url)
+    local = config['default']['local']
 
-    # with open("tmp.json") as fd:
-    #     data = fd.read()
+    if local == "yes":
+        debug("Running locally")
+        with open("tmp.json") as fd:
+            data = fd.read()
+        data = json.loads(data)
+    else:
+        debug("Running over http")
+        req = requests.get(url)
+        data = json.loads(req.content.decode())
 
-    data = json.loads(req.content.decode())
     return data
 
 def print_hourly(data=None):
 
-    reset = "\033[m"
-    black = "\033[0;30m"
-    blue  = "\033[0;34m"
-    green = "\033[0;32m"
-    cyan  = "\033[0;36m"
-    red  = "\033[0;31m"
-    purple = "\033[0;35m"
-    brown = "\033[0;33m"
-    light_gray = "\033[0;37m"
-    dark_gray = "\033[1;30m"
-    light_blue = "\033[1;34m"
-    light_green = "\033[1;32m"
-    light_cyan = "\033[1;36m"
-    light_red = "\033[1;31m"
-    light_purple = "\033[1;35m"
-    yellow = "\033[1;33m"
-    white = "\033[1;37m"
-
+    header_color = Fore.WHITE
 
     if data is None:
         data = load_data()
 
-    header = "  Time               |  Summary                  |  Temp   |  Winds                   |  Precip "
+    header = ("  Time               |"
+              " Summary                   |"
+              " Temp    |"
+              " Winds                    |"
+              " Precip ")
+
     header_border = "="* len(header)
 
-    print(white, end='')
+    print(header_color, end='')
     print(header)
     print(header_border)
     border = "-"* len(header)
@@ -80,18 +85,19 @@ def print_hourly(data=None):
         windgust = f'{windgust:0.1f}'.rjust(5)
         precip_probablity = f'{int(precip_probablity*100):}%'.rjust(4)
 
-        time_color = white
-        sumary_color = cyan
-        temperature_color = green
-        windspeed_color = purple
-        windspeed_color = purple
-        precip_color = yellow
+        time_color = Fore.WHITE
+        sumary_color = Fore.CYAN
+        temperature_color = Fore.GREEN
+        windspeed_color = Fore.MAGENTA
+        precip_color = Fore.YELLOW
 
-        output = (f" {time_color}{time} {white}|"
-                  f" {sumary_color}{summary} {white}|"
-                  f" {temperature_color}{temperature} F {white}|"
-                  f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH {white}|"
-                  f" {precip_color}{precip_probablity}" )
+        output = (
+            f" {time_color}{time} {header_color}|"
+            f" {sumary_color}{summary} {header_color}|"
+            f" {temperature_color}{temperature} F {header_color}|"
+            f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH {header_color}|"
+            f" {precip_color}{precip_probablity}"
+        )
 
         if newday.search(f'{time}'):
             print(border)
@@ -99,12 +105,21 @@ def print_hourly(data=None):
         print(output)
 
     footer_border = "-"* len(header)
-    print(white, end='')
+    print(header_color, end='')
     print(footer_border, end='')
     # print(light_gray)
-    print(reset)
+    print(Style.RESET_ALL)
 
-def main():
+
+
+@click.command()
+@click.option("-d", "--debug", is_flag=True, default=False,
+              help="Show debugging info")
+def main(debug):
+
+    if (debug is True):
+        logging.basicConfig(level=logging.DEBUG)
+
     print_hourly()
 
 
