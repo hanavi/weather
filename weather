@@ -191,7 +191,7 @@ def print_hourly(data=None):
             f" {temperature_color}{temperature} F {header_color}\u2502"
             f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
             f" {header_color}\u2502"
-            f" {precip_color}{precip_probablity}"
+            f" {precip_color}{precip_probablity}{header_color}"
             f"   \u2502"
         )
 
