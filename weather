@@ -10,6 +10,7 @@ from colorama import Fore, Back, Style
 import click
 from time import sleep
 import os
+import sys
 import pathlib
 import logging
 import structlog
@@ -27,7 +28,11 @@ def load_data():
     """Load data from file or from the web."""
 
     # Get the config from file
+    # config_filename = os.environ['HOME'] + "/.weatherrc"
     config_filename = os.environ['HOME'] + "/.weatherrc"
+    if not pathlib.Path(config_filename).exists():
+        error("No config file found.  Please add config or run with -g to generate")
+        sys.exit(1)
     debug(f"loading config from {config_filename}")
 
     config = configparser.ConfigParser()
@@ -50,41 +55,43 @@ def load_data():
         debug("Running over http")
 
         if 'cachefile' in config:
-
-            debug('checking cachefile')
             cachefile = pathlib.Path(config['cachefile'])
+        else:
+            cachefile = pathlib.Path(os.environ['HOME'] + '/.weather_cache')
 
-            if not cachefile.exists():
-                mtime = 0
-            else:
-                mtime = cachefile.stat().st_mtime
+        debug('checking cachefile')
 
-            now = datetime.datetime.now().timestamp()
-            last_update = now - mtime
-            debug(f"Cache file last updated {last_update:0.0f} s ago")
+        if not cachefile.exists():
+            mtime = 0
+        else:
+            mtime = cachefile.stat().st_mtime
 
-            # Update the cache file every 10 min
-            if last_update > 60*10:
-                debug("Cache file is out of date or does not exist... Updating!")
+        now = datetime.datetime.now().timestamp()
+        last_update = now - mtime
+        debug(f"Cache file last updated {last_update:0.0f} s ago")
 
-                # TODO: error checking
-                latitude = config['latitude']
-                longitude = config['longitude']
-                api_key = config['api_key']
+        # Update the cache file every 10 min
+        if last_update > 60*10:
+            debug("Cache file is out of date or does not exist... Updating!")
 
-                url = f'https://api.darksky.net/forecast/{api_key}/{latitude},{longitude}'
+            # TODO: error checking
+            latitude = config['latitude']
+            longitude = config['longitude']
+            api_key = config['api_key']
 
-                req = requests.get(url)
-                data = json.loads(req.content.decode())
+            url = f'https://api.darksky.net/forecast/{api_key}/{latitude},{longitude}'
 
-                with open(cachefile,'w') as fd:
-                    fd.write(json.dumps(data))
+            req = requests.get(url)
+            data = json.loads(req.content.decode())
 
-            else:
-                debug("Using cache file")
-                with open(cachefile) as fd:
-                    data = fd.read()
-                    data = json.loads(data)
+            with open(cachefile,'w') as fd:
+                fd.write(json.dumps(data))
+
+        else:
+            debug("Using cache file")
+            with open(cachefile) as fd:
+                data = fd.read()
+                data = json.loads(data)
 
     return data
 
@@ -107,6 +114,7 @@ def print_hourly(data=None):
     footer_border = "-"* len(header)
 
     print(header_color, end='')
+    print(border)
     print(header)
     print(header_border)
 
@@ -168,12 +176,33 @@ def run_loop():
         sleep(60)
 
 
+def generate_config():
+    """Generate config file."""
+
+    # TODO: error checking
+    config_file = os.environ['HOME'] + "/.weatherrc"
+    latitude = input("Location Latitude: ")
+    longitude = input("Location Longitude: ")
+    api_key = input("API Key from darksky.net: ")
+    config = configparser.ConfigParser()
+
+    config['default'] = {
+        'latitude' : latitude,
+        'longitude' : longitude,
+        'api_key' : api_key
+    }
+    with open(config_file, 'w') as fd:
+        config.write(fd)
+
+
 @click.command()
 @click.option("-d", "--debug", is_flag=True, default=False,
               help="Show debugging info")
 @click.option("-l", "--loop", is_flag=True, default=False,
               help="Run every 60 seconds")
-def main(debug, loop):
+@click.option("-g", "--generate", is_flag=True, default=False,
+              help="Generate config file")
+def main(debug, loop, generate):
     """Show weather information."""
 
     if debug is True:
@@ -181,6 +210,8 @@ def main(debug, loop):
 
     if loop is True:
         run_loop()
+    elif generate:
+        generate_config()
     else:
         print_hourly()
 
