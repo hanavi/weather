@@ -5,12 +5,19 @@ import requests
 import json
 import datetime
 import re
+import configparser
 
 
 def load_data():
 
-    latitude = 33.353286
-    longitude = -86.793839
+    config_filename = "weather.conf"
+    config = configparser.ConfigParser()
+    config.read(config_filename)
+
+    latitude = config['default']['latitude']
+    longitude = config['default']['longitude']
+    api_key = config['default']['api_key']
+
     url = f"https://api.darksky.net/forecast/{api_key}/{latitude},{longitude}"
 
     req = requests.get(url)
