@@ -97,8 +97,11 @@ def load_data():
     return data
 
 
-def print_hourly(data=None):
+def print_hourly(extended=False, data=None):
     """Print out the hourly forecast for the next 24 hours."""
+
+    if extended is True:
+        debug("Using Extended Output")
 
     header_color = Fore.WHITE
 
@@ -161,8 +164,9 @@ def print_hourly(data=None):
     for hour in data['hourly']['data']:
 
         # Only print 24-hours-ish
-        if i > 24:
+        if i > 24 and extended is False:
             break
+
         i += 1
 
         time = datetime.datetime.fromtimestamp(hour['time'])
@@ -205,12 +209,12 @@ def print_hourly(data=None):
     print(Style.RESET_ALL)
 
 
-def run_loop():
+def run_loop(extended=False):
     """Run every 60 seconds."""
 
     while True:
         os.system("clear")
-        print_hourly()
+        print_hourly(extended)
         sleep(60)
 
 
@@ -240,7 +244,9 @@ def generate_config():
               help="Run every 60 seconds")
 @click.option("-g", "--generate", is_flag=True, default=False,
               help="Generate config file")
-def main(debug, loop, generate):
+@click.option("-e", "--extended", is_flag=True, default=False,
+              help="Extended output")
+def main(debug, loop, generate, extended):
     """Show weather information."""
 
     try:
@@ -248,11 +254,11 @@ def main(debug, loop, generate):
             logging.basicConfig(level=logging.DEBUG)
 
         if loop is True:
-            run_loop()
+            run_loop(extended)
         elif generate:
             generate_config()
         else:
-            print_hourly()
+            print_hourly(extended)
     except KeyboardInterrupt:
         print("Done!")
 
