@@ -106,7 +106,7 @@ def print_hourly(data=None):
         data = load_data()
 
     header = ("\u2502  Time               \u2502"
-              " Summary                   \u2502"
+              " Summary                      \u2502"
               " Temp    \u2502"
               " Winds                    \u2502"
               " Precip \u2502")
@@ -116,7 +116,7 @@ def print_hourly(data=None):
 
     top_border = "\u250c"
     top_border += "\u2500" * 21 + "\u252c"
-    top_border += "\u2500" * 27 + "\u252c"
+    top_border += "\u2500" * 30 + "\u252c"
     top_border += "\u2500" * 9 + "\u252c"
     top_border += "\u2500" * 26 + "\u252c"
     top_border += "\u2500" * 8
@@ -124,7 +124,7 @@ def print_hourly(data=None):
 
     header_border = "\u255e"
     header_border += "\u2550" * 21 + "\u256a"
-    header_border += "\u2550" * 27 + "\u256a"
+    header_border += "\u2550" * 30 + "\u256a"
     header_border += "\u2550" * 9 + "\u256a"
     header_border += "\u2550" * 26 + "\u256a"
     header_border += "\u2550" * 8
@@ -132,7 +132,7 @@ def print_hourly(data=None):
 
     middle_border = "\u251c"
     middle_border += "\u2500" * 21 + "\u253c"
-    middle_border += "\u2500" * 27 + "\u253c"
+    middle_border += "\u2500" * 30 + "\u253c"
     middle_border += "\u2500" * 9 + "\u253c"
     middle_border += "\u2500" * 26 + "\u253c"
     middle_border += "\u2500" * 8
@@ -140,7 +140,7 @@ def print_hourly(data=None):
 
     footer_border = "\u2514"
     footer_border += "\u2500" * 21 + "\u2534"
-    footer_border += "\u2500" * 27 + "\u2534"
+    footer_border += "\u2500" * 30 + "\u2534"
     footer_border += "\u2500" * 9 + "\u2534"
     footer_border += "\u2500" * 26 + "\u2534"
     footer_border += "\u2500" * 8
@@ -171,6 +171,27 @@ def print_hourly(data=None):
         windspeed = hour['windSpeed']
         windgust = hour['windGust']
         precip_probablity = hour['precipProbability']
+        icon = hour['icon']
+
+        icon_list = {
+            'clear-day': "🌞",
+            'clear-night': "🌙",
+            'rain': "💧",
+            'snow': "❄",
+            'sleet': "❄",
+            'wind': "🌬",
+            'fog': "🌫",
+            'cloudy': "☁",
+            'partly-cloudy-day': "⛅",
+            'partly-cloudy-night': "⛅",
+            'default': " ",
+        }
+        debug(f"WX Icon: {icon}")
+
+        if icon not in icon_list:
+            icon_emoji = icon_list[default]
+        else:
+            icon_emoji = icon_list[icon]
 
         temperature = f'{temperature:0.1f}'.rjust(5)
         summary = f'{summary}'.ljust(25)
@@ -187,7 +208,7 @@ def print_hourly(data=None):
 
         output = (
             f"\u2502 {time_color}{time} {header_color}\u2502"
-            f" {sumary_color}{summary} {header_color}\u2502"
+            f" {sumary_color}{icon_emoji}  {summary} {header_color}\u2502"
             f" {temperature_color}{temperature} F {header_color}\u2502"
             f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
             f" {header_color}\u2502"
