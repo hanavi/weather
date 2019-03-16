@@ -6,7 +6,7 @@ import json
 import datetime
 import re
 import configparser
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 import click
 from time import sleep
 import os
@@ -30,7 +30,8 @@ def load_data():
     # Get the config from file
     config_filename = os.environ['HOME'] + "/.weatherrc"
     if not pathlib.Path(config_filename).exists():
-        error("No config file found.  Please add config or run with -g to generate")
+        error("No config file found.  Please add config or run with -g to "
+              "generate")
         sys.exit(1)
     debug(f"loading config from {config_filename}")
 
@@ -78,12 +79,13 @@ def load_data():
             longitude = config['longitude']
             api_key = config['api_key']
 
-            url = f'https://api.darksky.net/forecast/{api_key}/{latitude},{longitude}'
+            url = (f'https://api.darksky.net/forecast/{api_key}/'
+                   f'{latitude},{longitude}')
 
             req = requests.get(url)
             data = json.loads(req.content.decode())
 
-            with open(cachefile,'w') as fd:
+            with open(cachefile, 'w') as fd:
                 fd.write(json.dumps(data))
 
         else:
@@ -94,6 +96,7 @@ def load_data():
 
     return data
 
+
 def print_hourly(data=None):
     """Print out the hourly forecast for the next 24 hours."""
 
@@ -102,18 +105,52 @@ def print_hourly(data=None):
     if data is None:
         data = load_data()
 
-    header = ("  Time               |"
-              " Summary                   |"
-              " Temp    |"
-              " Winds                    |"
-              " Precip ")
+    header = ("\u2502  Time               \u2502"
+              " Summary                   \u2502"
+              " Temp    \u2502"
+              " Winds                    \u2502"
+              " Precip \u2502")
 
-    header_border = "="* len(header)
-    border = "-"* len(header)
-    footer_border = "-"* len(header)
+    # header_border = "=" * len(header)
+    # header_border = "\u2550" * len(header)
+
+    top_border = "\u250c"
+    top_border += "\u2500" * 21 + "\u252c"
+    top_border += "\u2500" * 27 + "\u252c"
+    top_border += "\u2500" * 9 + "\u252c"
+    top_border += "\u2500" * 26 + "\u252c"
+    top_border += "\u2500" * 8
+    top_border += "\u2510"
+
+    header_border = "\u255e"
+    header_border += "\u2550" * 21 + "\u256a"
+    header_border += "\u2550" * 27 + "\u256a"
+    header_border += "\u2550" * 9 + "\u256a"
+    header_border += "\u2550" * 26 + "\u256a"
+    header_border += "\u2550" * 8
+    header_border += "\u2561"
+
+    middle_border = "\u251c"
+    middle_border += "\u2500" * 21 + "\u253c"
+    middle_border += "\u2500" * 27 + "\u253c"
+    middle_border += "\u2500" * 9 + "\u253c"
+    middle_border += "\u2500" * 26 + "\u253c"
+    middle_border += "\u2500" * 8
+    middle_border += "\u2524"
+
+    footer_border = "\u2514"
+    footer_border += "\u2500" * 21 + "\u2534"
+    footer_border += "\u2500" * 27 + "\u2534"
+    footer_border += "\u2500" * 9 + "\u2534"
+    footer_border += "\u2500" * 26 + "\u2534"
+    footer_border += "\u2500" * 8
+    footer_border += "\u2518"
+    # border = "\u2015" * len(header)
+    # footer_border = "-" * len(header)
+    # footer_border = "\u2015" * len(header)
 
     print(header_color, end='')
-    print(border)
+    print(top_border)
     print(header)
     print(header_border)
 
@@ -149,15 +186,17 @@ def print_hourly(data=None):
         precip_color = Fore.YELLOW
 
         output = (
-            f" {time_color}{time} {header_color}|"
-            f" {sumary_color}{summary} {header_color}|"
-            f" {temperature_color}{temperature} F {header_color}|"
-            f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH {header_color}|"
+            f"\u2502 {time_color}{time} {header_color}\u2502"
+            f" {sumary_color}{summary} {header_color}\u2502"
+            f" {temperature_color}{temperature} F {header_color}\u2502"
+            f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
+            f" {header_color}\u2502"
             f" {precip_color}{precip_probablity}"
+            f"   \u2502"
         )
 
         if newday.search(f'{time}') and i > 1:
-            print(border)
+            print(middle_border)
 
         print(output)
 
@@ -186,9 +225,9 @@ def generate_config():
     config = configparser.ConfigParser()
 
     config['default'] = {
-        'latitude' : latitude,
-        'longitude' : longitude,
-        'api_key' : api_key
+        'latitude': latitude,
+        'longitude': longitude,
+        'api_key': api_key
     }
     with open(config_file, 'w') as fd:
         config.write(fd)
@@ -220,5 +259,3 @@ def main(debug, loop, generate):
 
 if __name__ == "__main__":
     main()
-
-
