@@ -252,41 +252,41 @@ def print_daily():
 
     header_color = Fore.WHITE
 
-    header = ("\u2502  Date " + " " * 9 + "\u2502"
-              " Summary " + " " * 33 + "\u2502"
+    header = ("\u2502  Date " + " " * 4 + "\u2502"
+              " Summary " + " " * 23 + "\u2502"
               " Temp " + " " * 9 + "\u2502"
-              " Winds                    \u2502"
+              " Winds "+ " " * 16 + "\u2502"
               " Precip \u2502")
 
     top_border = "\u250c"
-    top_border += "\u2500" * 16 + "\u252c"
-    top_border += "\u2500" * 42 + "\u252c"
+    top_border += "\u2500" * 11 + "\u252c"
+    top_border += "\u2500" * 32 + "\u252c"
     top_border += "\u2500" * 15 + "\u252c"
-    top_border += "\u2500" * 26 + "\u252c"
+    top_border += "\u2500" * 23 + "\u252c"
     top_border += "\u2500" * 8
     top_border += "\u2510"
 
     header_border = "\u255e"
-    header_border += "\u2550" * 16 + "\u256a"
-    header_border += "\u2550" * 42 + "\u256a"
+    header_border += "\u2550" * 11 + "\u256a"
+    header_border += "\u2550" * 32 + "\u256a"
     header_border += "\u2550" * 15 + "\u256a"
-    header_border += "\u2550" * 26 + "\u256a"
+    header_border += "\u2550" * 23 + "\u256a"
     header_border += "\u2550" * 8
     header_border += "\u2561"
 
     middle_border = "\u251c"
-    middle_border += "\u2500" * 16 + "\u253c"
-    middle_border += "\u2500" * 42 + "\u253c"
+    middle_border += "\u2500" * 11 + "\u253c"
+    middle_border += "\u2500" * 32 + "\u253c"
     middle_border += "\u2500" * 15 + "\u253c"
-    middle_border += "\u2500" * 26 + "\u253c"
+    middle_border += "\u2500" * 23 + "\u253c"
     middle_border += "\u2500" * 8
     middle_border += "\u2524"
 
     footer_border = "\u2514"
-    footer_border += "\u2500" * 16 + "\u2534"
-    footer_border += "\u2500" * 42 + "\u2534"
+    footer_border += "\u2500" * 11 + "\u2534"
+    footer_border += "\u2500" * 32 + "\u2534"
     footer_border += "\u2500" * 15 + "\u2534"
-    footer_border += "\u2500" * 26 + "\u2534"
+    footer_border += "\u2500" * 23 + "\u2534"
     footer_border += "\u2500" * 8
     footer_border += "\u2518"
 
@@ -296,17 +296,28 @@ def print_daily():
     print(header_border)
 
     summary_wrapper = TextWrapper()
-    summary_wrapper.width = 40
+    summary_wrapper.width = 30
+
+    line_spacer = (
+        f"\u2502" + " " * 11 + f"{header_color}\u2502"
+        " " + " " * 30 + f" {header_color}\u2502"
+        " " + " " * 13 + f" {header_color}\u2502"
+        " " + " " * 21 + f" {header_color}\u2502"
+        " " + " " * 3 + f" {header_color}"
+        "   \u2502"
+    )
 
     first = True
+    day_divider = False
     for day in daily['data']:
 
         if first is True:
             first = False
         else:
-            pass
-            # print(middle_border)
+            if day_divider is True:
+                print(middle_border)
 
+        print(line_spacer)
 
         time = datetime.datetime.fromtimestamp(day['time'])
         summary = day['summary']
@@ -317,7 +328,7 @@ def print_daily():
         precip_probablity = day['precipProbability']
         weekday = calendar.day_abbr[time.weekday()]
 
-        time = f"{time}".split(" ")[0]
+        time = f"{time}".split(" ")[0][5:]
         temperature_low = f'{temperature_low:0.1f}'.rjust(5)
         temperature_high = f'{temperature_high:0.1f}'.rjust(5)
         summary = summary_wrapper.wrap(summary)
@@ -333,13 +344,13 @@ def print_daily():
         precip_color = Fore.YELLOW
 
         summary_init = summary[0]
-        summary_init = f'{summary_init}'.ljust(40)
+        summary_init = f'{summary_init}'.ljust(30)
 
         output = (
             f"\u2502 {time_color}{time} {weekday} {header_color}\u2502"
             f" {sumary_color}{summary_init} {header_color}\u2502"
             f" {temperature_color}{temperature_low}/{temperature_high} F {header_color}\u2502"
-            f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
+            f" {windspeed_color}{windspeed} (Gusts{windgust}) MPH"
             f" {header_color}\u2502"
             f" {precip_color}{precip_probablity}{header_color}"
             f"   \u2502"
@@ -349,22 +360,23 @@ def print_daily():
 
         if len(summary) > 1:
             for i, line in enumerate(summary):
-                if line == 0:
+                if i == 0:
                     continue
 
                 summary_next = line
-                summary_next = f'{summary_next}'.ljust(40)
+                summary_next = f'{summary_next}'.ljust(30)
 
                 output = (
-                    f"\u2502" + " " * 16 + f"{header_color}\u2502"
+                    f"\u2502" + " " * 11 + f"{header_color}\u2502"
                     f" {sumary_color}{summary_next} {header_color}\u2502"
                     " " + " " * 13 + f" {header_color}\u2502"
-                    " " + " " * 24 + f" {header_color}\u2502"
+                    " " + " " * 21 + f" {header_color}\u2502"
                     " " + " " * 3 + f" {header_color}"
                     f"   \u2502"
                 )
-            print(output)
+                print(output)
 
+    print(line_spacer)
     print(header_color, end='')
     print(footer_border, end='')
     print(Style.RESET_ALL)
