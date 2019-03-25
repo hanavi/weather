@@ -15,6 +15,8 @@ import pathlib
 import logging
 import structlog
 from structlog.stdlib import LoggerFactory
+from textwrap import TextWrapper
+import calendar
 
 # Easier/Pretty logging
 structlog.configure(logger_factory=LoggerFactory())
@@ -189,6 +191,7 @@ def print_hourly(extended=False, data=None):
         windspeed_color = Fore.MAGENTA
         precip_color = Fore.YELLOW
 
+
         output = (
             f"\u2502 {time_color}{time} {header_color}\u2502"
             f" {sumary_color}{summary} {header_color}\u2502"
@@ -236,6 +239,137 @@ def generate_config():
     with open(config_file, 'w') as fd:
         config.write(fd)
 
+def print_daily():
+    """Print Daily Weather."""
+
+    data = load_data()
+    daily = data['daily']
+    summary = daily['summary']
+
+    print("")
+    print(f"  Summary: {summary}")
+    print("")
+
+    header_color = Fore.WHITE
+
+    header = ("\u2502  Date " + " " * 9 + "\u2502"
+              " Summary " + " " * 33 + "\u2502"
+              " Temp " + " " * 9 + "\u2502"
+              " Winds                    \u2502"
+              " Precip \u2502")
+
+    top_border = "\u250c"
+    top_border += "\u2500" * 16 + "\u252c"
+    top_border += "\u2500" * 42 + "\u252c"
+    top_border += "\u2500" * 15 + "\u252c"
+    top_border += "\u2500" * 26 + "\u252c"
+    top_border += "\u2500" * 8
+    top_border += "\u2510"
+
+    header_border = "\u255e"
+    header_border += "\u2550" * 16 + "\u256a"
+    header_border += "\u2550" * 42 + "\u256a"
+    header_border += "\u2550" * 15 + "\u256a"
+    header_border += "\u2550" * 26 + "\u256a"
+    header_border += "\u2550" * 8
+    header_border += "\u2561"
+
+    middle_border = "\u251c"
+    middle_border += "\u2500" * 16 + "\u253c"
+    middle_border += "\u2500" * 42 + "\u253c"
+    middle_border += "\u2500" * 15 + "\u253c"
+    middle_border += "\u2500" * 26 + "\u253c"
+    middle_border += "\u2500" * 8
+    middle_border += "\u2524"
+
+    footer_border = "\u2514"
+    footer_border += "\u2500" * 16 + "\u2534"
+    footer_border += "\u2500" * 42 + "\u2534"
+    footer_border += "\u2500" * 15 + "\u2534"
+    footer_border += "\u2500" * 26 + "\u2534"
+    footer_border += "\u2500" * 8
+    footer_border += "\u2518"
+
+    print(header_color, end='')
+    print(top_border)
+    print(header)
+    print(header_border)
+
+    summary_wrapper = TextWrapper()
+    summary_wrapper.width = 40
+
+    first = True
+    for day in daily['data']:
+
+        if first is True:
+            first = False
+        else:
+            pass
+            # print(middle_border)
+
+
+        time = datetime.datetime.fromtimestamp(day['time'])
+        summary = day['summary']
+        temperature_low = day['temperatureLow']
+        temperature_high = day['temperatureHigh']
+        windspeed = day['windSpeed']
+        windgust = day['windGust']
+        precip_probablity = day['precipProbability']
+        weekday = calendar.day_abbr[time.weekday()]
+
+        time = f"{time}".split(" ")[0]
+        temperature_low = f'{temperature_low:0.1f}'.rjust(5)
+        temperature_high = f'{temperature_high:0.1f}'.rjust(5)
+        summary = summary_wrapper.wrap(summary)
+        windspeed = f'{windspeed:0.1f}'.rjust(4)
+        windgust = f'{windgust:0.1f}'.rjust(5)
+        precip_probablity = f'{int(precip_probablity*100):}%'.rjust(4)
+
+        # Set the colors for the output
+        time_color = Fore.WHITE
+        sumary_color = Fore.CYAN
+        temperature_color = Fore.GREEN
+        windspeed_color = Fore.MAGENTA
+        precip_color = Fore.YELLOW
+
+        summary_init = summary[0]
+        summary_init = f'{summary_init}'.ljust(40)
+
+        output = (
+            f"\u2502 {time_color}{time} {weekday} {header_color}\u2502"
+            f" {sumary_color}{summary_init} {header_color}\u2502"
+            f" {temperature_color}{temperature_low}/{temperature_high} F {header_color}\u2502"
+            f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
+            f" {header_color}\u2502"
+            f" {precip_color}{precip_probablity}{header_color}"
+            f"   \u2502"
+        )
+
+        print(output)
+
+        if len(summary) > 1:
+            for i, line in enumerate(summary):
+                if line == 0:
+                    continue
+
+                summary_next = line
+                summary_next = f'{summary_next}'.ljust(40)
+
+                output = (
+                    f"\u2502" + " " * 16 + f"{header_color}\u2502"
+                    f" {sumary_color}{summary_next} {header_color}\u2502"
+                    " " + " " * 13 + f" {header_color}\u2502"
+                    " " + " " * 24 + f" {header_color}\u2502"
+                    " " + " " * 3 + f" {header_color}"
+                    f"   \u2502"
+                )
+            print(output)
+
+    print(header_color, end='')
+    print(footer_border, end='')
+    print(Style.RESET_ALL)
+    print("")
+
 
 @click.command()
 @click.option("-d", "--debug", is_flag=True, default=False,
@@ -246,7 +380,9 @@ def generate_config():
               help="Generate config file")
 @click.option("-e", "--extended", is_flag=True, default=False,
               help="Extended output")
-def main(debug, loop, generate, extended):
+@click.option("--daily", is_flag=True, default=False,
+              help="Show daily weather")
+def main(debug, loop, generate, extended, daily):
     """Show weather information."""
 
     try:
@@ -255,8 +391,10 @@ def main(debug, loop, generate, extended):
 
         if loop is True:
             run_loop(extended)
-        elif generate:
+        elif generate is True:
             generate_config()
+        elif daily is True:
+            print_daily()
         else:
             print_hourly(extended)
     except KeyboardInterrupt:
