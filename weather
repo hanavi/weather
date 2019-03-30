@@ -26,11 +26,12 @@ info = log.info
 error = log.error
 
 
-def load_data():
+def load_data(config_filename=None, location=None):
     """Load data from file or from the web."""
 
     # Get the config from file
-    config_filename = os.environ['HOME'] + "/.weatherrc"
+    if config_filename is None:
+        config_filename = os.environ['HOME'] + "/.weatherrc"
     if not pathlib.Path(config_filename).exists():
         error("No config file found.  Please add config or run with -g to "
               "generate")
@@ -39,10 +40,10 @@ def load_data():
 
     config = configparser.ConfigParser()
     config.read(config_filename)
-    config = config['default']
+    default_config = config['default']
 
     if 'local' in config:
-        local = config['local']
+        local = default_config['local']
     else:
         local = "no"
 
@@ -56,8 +57,8 @@ def load_data():
     else:
         debug("Running over http")
 
-        if 'cachefile' in config:
-            cachefile = pathlib.Path(config['cachefile'])
+        if 'cachefile' in default_config:
+            cachefile = pathlib.Path(default_config['cachefile'])
         else:
             cachefile = pathlib.Path(os.environ['HOME'] + '/.weather_cache')
 
@@ -73,16 +74,21 @@ def load_data():
         debug(f"Cache file last updated {last_update:0.0f} s ago")
 
         # Update the cache file every 10 min
+        # TODO: error checking
+        api_key = default_config['api_key']
+        if location is None:
+            latitude = default_config['latitude']
+            longitude = default_config['longitude']
+        else:
+            latitude = config[location]['latitude']
+            longitude = config[location]['longitude']
+
+        url = (f'https://api.darksky.net/forecast/{api_key}/'
+               f'{latitude},{longitude}')
+
         if last_update > 60*10:
             debug("Cache file is out of date or does not exist... Updating!")
 
-            # TODO: error checking
-            latitude = config['latitude']
-            longitude = config['longitude']
-            api_key = config['api_key']
-
-            url = (f'https://api.darksky.net/forecast/{api_key}/'
-                   f'{latitude},{longitude}')
 
             req = requests.get(url)
             data = json.loads(req.content.decode())
@@ -95,20 +101,26 @@ def load_data():
             with open(cachefile) as fd:
                 data = fd.read()
                 data = json.loads(data)
+            if latitude == str(data['latitude']) and str(longitude) == str(data['longitude']):
+                debug("Same Location")
+            else:
+                debug("New Location: Updating Cache")
+                req = requests.get(url)
+                data = json.loads(req.content.decode())
+
+                with open(cachefile, 'w') as fd:
+                    fd.write(json.dumps(data))
 
     return data
 
 
-def print_hourly(extended=False, data=None):
+def print_hourly(data, extended=False):
     """Print out the hourly forecast for the next 24 hours."""
 
     if extended is True:
         debug("Using Extended Output")
 
     header_color = Fore.WHITE
-
-    if data is None:
-        data = load_data()
 
     header = ("\u2502  Time               \u2502"
               " Summary                   \u2502"
@@ -212,20 +224,22 @@ def print_hourly(extended=False, data=None):
     print(Style.RESET_ALL)
 
 
-def run_loop(extended=False):
+def run_loop(data, extended=False):
     """Run every 60 seconds."""
 
     while True:
         os.system("clear")
-        print_hourly(extended)
+        print_hourly(data, extended)
         sleep(60)
 
 
-def generate_config():
+def generate_config(config_filename=None):
     """Generate config file."""
 
     # TODO: error checking
-    config_file = os.environ['HOME'] + "/.weatherrc"
+    if config_filename is None:
+        config_filename = os.environ['HOME'] + "/.weatherrc"
+
     latitude = input("Location Latitude: ")
     longitude = input("Location Longitude: ")
     api_key = input("API Key from darksky.net: ")
@@ -236,13 +250,12 @@ def generate_config():
         'longitude': longitude,
         'api_key': api_key
     }
-    with open(config_file, 'w') as fd:
+    with open(config_filename, 'w') as fd:
         config.write(fd)
 
-def print_daily():
+def print_daily(data):
     """Print Daily Weather."""
 
-    data = load_data()
     daily = data['daily']
     summary = daily['summary']
 
@@ -386,6 +399,8 @@ def print_daily():
 @click.command()
 @click.option("-d", "--debug", is_flag=True, default=False,
               help="Show debugging info")
+@click.option("-c", "--config", default=None,
+              help="Set configuration file")
 @click.option("-l", "--loop", is_flag=True, default=False,
               help="Run every 60 seconds")
 @click.option("-g", "--generate", is_flag=True, default=False,
@@ -394,21 +409,27 @@ def print_daily():
               help="Extended output")
 @click.option("--daily", is_flag=True, default=False,
               help="Show daily weather")
-def main(debug, loop, generate, extended, daily):
+@click.option("-o", "--location", default=None,
+              help="Use Alternate Location")
+def main(debug, config, loop, generate, extended, daily, location):
     """Show weather information."""
 
     try:
         if debug is True:
             logging.basicConfig(level=logging.DEBUG)
 
+
         if loop is True:
-            run_loop(extended)
+            data = load_data(config, location)
+            run_loop(data, extended)
         elif generate is True:
-            generate_config()
+            generate_config(config)
         elif daily is True:
-            print_daily()
+            data = load_data(config, location)
+            print_daily(data)
         else:
-            print_hourly(extended)
+            data = load_data(config, location)
+            print_hourly(data, extended)
     except KeyboardInterrupt:
         print("Done!")
 
