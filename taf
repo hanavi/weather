@@ -1,0 +1,31 @@
+#!/bin/bash
+
+STATION_LIST=${HOME}/.wxlist_taf
+STATION_LIST_URL=https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/
+BASE_URL=https://tgftp.nws.noaa.gov/data/forecasts/taf/stations
+
+if [[ ! -f $STATION_LIST || -n "`find $STATION_LIST -mtime 7 2>/dev/null`" ]]
+then
+    echo "Updating Station List..."
+    echo ""
+    curl -s $STATION_LIST_URL \
+        | grep TXT \
+        | cut -f2 -d'"' \
+        | cut -f1 -d"." > $STATION_LIST
+fi
+
+
+#STATION=$( cat $STATION_LIST | \ fzf --layout=reverse -i --height=40% --border )
+STATION=$( cat $STATION_LIST | dmenu -i -l 5 -p "Station: ")
+
+DL_URL=$BASE_URL/${STATION}.TXT
+
+echo
+if [[ $HOSTNAME == "thinkpad" ]]
+then
+    [[ ! -z $STATION ]] && notify-send -a weather " " "$(curl -s $DL_URL)"
+else
+    [[ ! -z $STATION ]] && curl -s $DL_URL
+fi
+echo
+
