@@ -224,10 +224,11 @@ def print_hourly(data, extended=False):
     print(Style.RESET_ALL)
 
 
-def run_loop(data, extended=False):
+def run_loop(config, location, extended=False):
     """Run every 60 seconds."""
 
     while True:
+        data = load_data(config, location)
         os.system("clear")
         print_hourly(data, extended)
         sleep(60)
@@ -420,8 +421,7 @@ def main(debug, config, loop, generate, extended, daily, location):
 
 
         if loop is True:
-            data = load_data(config, location)
-            run_loop(data, extended)
+            run_loop(config, location, extended)
         elif generate is True:
             generate_config(config)
         elif daily is True:
