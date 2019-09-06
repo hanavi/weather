@@ -18,6 +18,10 @@ from structlog.stdlib import LoggerFactory
 from textwrap import TextWrapper
 import calendar
 
+# Gets rid of InsecureRequestWarning that crops up due to BCBSAL Proxy
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 # Easier/Pretty logging
 structlog.configure(logger_factory=LoggerFactory())
 log = structlog.get_logger()
@@ -31,7 +35,10 @@ def load_data(config_filename=None, location=None):
 
     # Get the config from file
     if config_filename is None:
-        config_filename = os.environ['HOME'] + "/.weatherrc"
+        if os.name == "nt":
+            config_filename = os.environ['HOMEPATH'] + "/.weatherrc"
+        else:
+            config_filename = os.environ['HOME'] + "/.weatherrc"
     if not pathlib.Path(config_filename).exists():
         error("No config file found.  Please add config or run with -g to "
               "generate")
@@ -60,7 +67,10 @@ def load_data(config_filename=None, location=None):
         if 'cachefile' in default_config:
             cachefile = pathlib.Path(default_config['cachefile'])
         else:
-            cachefile = pathlib.Path(os.environ['HOME'] + '/.weather_cache')
+            if os.name == "nt":
+                cachefile = pathlib.Path(os.environ['HOMEPATH'] + '/.weather_cache')
+            else:
+                cachefile = pathlib.Path(os.environ['HOME'] + '/.weather_cache')
 
         debug('checking cachefile')
 
@@ -90,7 +100,7 @@ def load_data(config_filename=None, location=None):
             debug("Cache file is out of date or does not exist... Updating!")
 
 
-            req = requests.get(url)
+            req = requests.get(url, verify=False)
             data = json.loads(req.content.decode())
 
             with open(cachefile, 'w') as fd:
@@ -105,7 +115,7 @@ def load_data(config_filename=None, location=None):
                 debug("Same Location")
             else:
                 debug("New Location: Updating Cache")
-                req = requests.get(url)
+                req = requests.get(url, verify=False)
                 data = json.loads(req.content.decode())
 
                 with open(cachefile, 'w') as fd:
