@@ -26,6 +26,13 @@ info = log.info
 error = log.error
 
 
+def slow_print(buf):
+    for c in buf:
+        print(c, end='', flush=True)
+        sleep(.05)
+    sleep(.5)
+    print()
+
 def load_data(config_filename=None, location=None):
     """Load data from file or from the web."""
 
@@ -122,7 +129,7 @@ def print_hourly(data, extended=False):
 
     header_color = Fore.WHITE
 
-    header = ("\u2502  Time               \u2502"
+    header = ("\u2502 Time  \u2502"
               " Summary                   \u2502"
               " Temp    \u2502"
               " Winds                    \u2502"
@@ -132,7 +139,7 @@ def print_hourly(data, extended=False):
     # header_border = "\u2550" * len(header)
 
     top_border = "\u250c"
-    top_border += "\u2500" * 21 + "\u252c"
+    top_border += "\u2500" * 7 + "\u252c"
     top_border += "\u2500" * 27 + "\u252c"
     top_border += "\u2500" * 9 + "\u252c"
     top_border += "\u2500" * 26 + "\u252c"
@@ -140,7 +147,7 @@ def print_hourly(data, extended=False):
     top_border += "\u2510"
 
     header_border = "\u255e"
-    header_border += "\u2550" * 21 + "\u256a"
+    header_border += "\u2550" * 7 + "\u256a"
     header_border += "\u2550" * 27 + "\u256a"
     header_border += "\u2550" * 9 + "\u256a"
     header_border += "\u2550" * 26 + "\u256a"
@@ -148,7 +155,7 @@ def print_hourly(data, extended=False):
     header_border += "\u2561"
 
     middle_border = "\u251c"
-    middle_border += "\u2500" * 21 + "\u253c"
+    middle_border += "\u2500" * 7 + "\u253c"
     middle_border += "\u2500" * 27 + "\u253c"
     middle_border += "\u2500" * 9 + "\u253c"
     middle_border += "\u2500" * 26 + "\u253c"
@@ -156,7 +163,7 @@ def print_hourly(data, extended=False):
     middle_border += "\u2524"
 
     footer_border = "\u2514"
-    footer_border += "\u2500" * 21 + "\u2534"
+    footer_border += "\u2500" * 7 + "\u2534"
     footer_border += "\u2500" * 27 + "\u2534"
     footer_border += "\u2500" * 9 + "\u2534"
     footer_border += "\u2500" * 26 + "\u2534"
@@ -184,6 +191,7 @@ def print_hourly(data, extended=False):
         i += 1
 
         time = datetime.datetime.fromtimestamp(hour['time'])
+        time_out = time.strftime("%H:%M")
         summary = hour['summary']
         temperature = hour['temperature']
         windspeed = hour['windSpeed']
@@ -205,7 +213,7 @@ def print_hourly(data, extended=False):
 
 
         output = (
-            f"\u2502 {time_color}{time} {header_color}\u2502"
+            f"\u2502 {time_color}{time_out} {header_color}\u2502"
             f" {sumary_color}{summary} {header_color}\u2502"
             f" {temperature_color}{temperature} F {header_color}\u2502"
             f" {windspeed_color}{windspeed} (Gusting {windgust}) MPH"
@@ -397,6 +405,49 @@ def print_daily(data):
     print("")
 
 
+def vintage_out(data):
+    """Print Daily Weather Oldschool..."""
+
+    daily = data['daily']
+    summary = daily['summary']
+
+    slow_print("")
+    slow_print(f"  Summary: {summary}")
+    slow_print("")
+
+
+    for day in daily['data']:
+
+        time = datetime.datetime.fromtimestamp(day['time'])
+        summary = day['summary']
+        temperature_low = day['temperatureLow']
+        temperature_high = day['temperatureHigh']
+        windspeed = day['windSpeed']
+        windgust = day['windGust']
+        precip_probablity = day['precipProbability']
+        weekday = calendar.day_abbr[time.weekday()]
+
+        time = f"{time}".split(" ")[0][5:]
+        temperature_low = f'{temperature_low:0.1f}'.rjust(5)
+        temperature_high = f'{temperature_high:0.1f}'.rjust(5)
+        windspeed = f'{windspeed:0.1f}'.rjust(4)
+        windgust = f'{windgust:0.1f}'.rjust(5)
+        precip_probablity = f'{int(precip_probablity*100):}%'.rjust(4)
+
+        summary_init = summary[0]
+        summary_init = f'{summary_init}'.ljust(30)
+
+        output = (
+            f" {time} {weekday}\n"
+            f" {summary}\n"
+            f"   Temp: {temperature_low}/{temperature_high} F \n"
+            f"   Wind: {windspeed} (Gusts{windgust}) MPH \n"
+            f"   Precipitation: {precip_probablity} \n\n"
+        )
+
+        slow_print(output)
+
+
 @click.command()
 @click.option("-d", "--debug", is_flag=True, default=False,
               help="Show debugging info")
@@ -410,9 +461,11 @@ def print_daily(data):
               help="Extended output")
 @click.option("--daily", is_flag=True, default=False,
               help="Show daily weather")
+@click.option("-s", "--slow", is_flag=True, default=False,
+              help="Print out slow like a tele-type")
 @click.option("-o", "--location", default=None,
               help="Use Alternate Location")
-def main(debug, config, loop, generate, extended, daily, location):
+def main(debug, config, loop, generate, extended, daily, slow, location):
     """Show weather information."""
 
     try:
@@ -427,6 +480,9 @@ def main(debug, config, loop, generate, extended, daily, location):
         elif daily is True:
             data = load_data(config, location)
             print_daily(data)
+        elif slow is True:
+            data = load_data(config, location)
+            vintage_out(data)
         else:
             data = load_data(config, location)
             print_hourly(data, extended)
